@@ -254,12 +254,13 @@
     (->> {initial-dfa (fitness initial-dfa)}
       (iterate (fn [population]
                  (evolve population mutate fitness max-size)))
-      (map (fn [population]
-             (apply max-key
-                    #(- (val %)
-                        (/ (count (str (key %)))
-                           1000000.0))
-                    population)))
-      (distinct)
+      (util/strictly-increasing-subseq (fn [population]
+                                         (val
+                                           (apply max-key
+                                                  #(- (val %)
+                                                      (/ (count (str (key %)))
+                                                         1000000.0))
+                                                  population))))
+      (map (partial apply max-key val))
       (map ./pprint)
       (dorun))))
