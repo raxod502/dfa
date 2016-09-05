@@ -220,18 +220,21 @@
 
 (defn evolve
   "Runs a population through one step of evolution. The population
-  should be a set; mutate should be a function of one variable that
-  returns a number for each member of the population (larger is
-  better); and fitness should be a function of one variable that
-  returns a slightly modified version of a member of the population.
-  The population will be culled to at most max-size members, if
-  necessary."
-  ;; Note: storing the fitness of each candidate in the population may
-  ;; drastically increase performance.
+  should be a map from members to their fitness numbers; fitness
+  should be a function of one variable that returns a number for a
+  member of the population (larger is better); and mutate should be a
+  function of one variable that returns a slightly modified version of
+  a member of the population. The population will be culled to at most
+  max-size members, if necessary."
   [population mutate fitness max-size]
-  (let [population (conj population (mutate (rand-nth (seq population))))]
-    (if (> (count population) max-size)
-      (disj population (apply min-key fitness population))
+  (let [new-member (mutate (rand-nth (keys population)))]
+    (if-not (contains? population new-member)
+      (-> population
+        ;; If the population is already at its limit, cull.
+        (cond-> (>= (count population) max-size)
+          ;; Remove the least fit member of the population.
+          (dissoc (key (apply min-key val population))))
+        (assoc new-member (fitness new-member)))
       population)))
 
 (defn engineer
@@ -243,20 +246,20 @@
                   (repeatedly)
                   (remove #{%})
                   (first))
-        fitness #(accuracy % predicate inputs)]
-    (->> #{{:transitions {:q0 {\0 :q0
-                               \1 :q0}}
-            :accepting? {:q0 false}
-            :initial :q0}}
+        fitness #(accuracy % predicate inputs)
+        initial-dfa {:transitions {:q0 {\0 :q0
+                                        \1 :q0}}
+                     :accepting? {:q0 false}
+                     :initial :q0}]
+    (->> {initial-dfa (fitness initial-dfa)}
       (iterate (fn [population]
                  (evolve population mutate fitness max-size)))
       (map (fn [population]
-             [(apply max-key
-                     #(- (fitness %)
-                         (/ (count (str %))
-                            1000000.0))
-                     population)
-              (apply max (map fitness population))]))
+             (apply max-key
+                    #(- (val %)
+                        (/ (count (str (key %)))
+                           1000000.0))
+                    population)))
       (distinct)
       (map ./pprint)
       (dorun))))
