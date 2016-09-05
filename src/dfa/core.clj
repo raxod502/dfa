@@ -238,7 +238,11 @@
   "Quick and dirty function for viewing the progress of evolution."
   [predicate max-length weights max-size]
   (let [inputs (all-bitstrings max-length)
-        mutate #(mutate % weights)
+        mutate #(->> (mutate % weights)
+                  (fn [])
+                  (repeatedly)
+                  (remove #{%})
+                  (first))
         fitness #(accuracy % predicate inputs)]
     (->> #{{:transitions {:q0 {\0 :q0
                                \1 :q0}}
