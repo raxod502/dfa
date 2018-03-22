@@ -1,5 +1,6 @@
 (ns dfa.core
-  (:require [clojure.string :as str]
+  (:require [clojure.pprint :as pprint]
+            [clojure.string :as str]
             [dfa.util :as util]))
 
 ;;; A DFS is represented as a "transitions" map and an "accepting"
@@ -262,5 +263,5 @@
                                                          1000000.0))
                                                   population))))
       (map (partial apply max-key val))
-      (map ./pprint)
+      (map clojure.pprint/pprint)
       (dorun))))
